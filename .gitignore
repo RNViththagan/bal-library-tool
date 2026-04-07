@@ -1,3 +1,14 @@
+# Build output
 .gradle/
 build/
-docs/
+
+# Large binary resources — not committed, copied from LS repo by install-local.sh
+src/main/resources/search-index.sqlite
+
+# macOS
+.DS_Store
+
+# IntelliJ / VS Code
+.idea/
+*.iml
+.vscode/

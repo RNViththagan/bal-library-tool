@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+}
+
+group = 'io.ballerina.tool'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    balDist = '/Library/Ballerina/distributions/ballerina-2201.13.2/bre/lib'
+    lsBuild = '/Users/viththagan/WSO2/ballerina-language-server'
+}
+
+dependencies {
+    // Available on classpath as a bal tool at runtime
+    compileOnly fileTree(dir: "${balDist}", include: [
+            'ballerina-cli-*.jar',
+            'picocli-*.jar',
+            'ballerina-lang-*.jar',
+            'ballerina-parser-*.jar',
+            'ballerina-tools-api-*.jar',
+            'gson-*.jar',
+            'jackson-databind-*.jar',
+            'jackson-annotations-*.jar',
+            'jackson-core-*.jar',
+    ])
+
+    // LS build JARs — compileOnly here, copied into tool/libs/ by install-local.sh
+    compileOnly fileTree(dir: "${lsBuild}/langserver-core/build/libs", include: ['langserver-core-*.jar'])
+    compileOnly fileTree(dir: "${lsBuild}/langserver-commons/build/libs", include: ['langserver-commons-*.jar'])
+    compileOnly fileTree(dir: "${lsBuild}/flow-model-generator/modules/flow-model-generator-core/build/libs", include: ['flow-model-generator-core-*.jar'])
+    compileOnly fileTree(dir: "${lsBuild}/model-generator-commons/build/libs", include: ['model-generator-commons-*.jar'])
+    compileOnly fileTree(dir: "${lsBuild}/misc/diagram-util/build/libs", include: ['diagram-util-*.jar'])
+
+    // Must be bundled — not in Ballerina's bre/lib
+    implementation 'org.xerial:sqlite-jdbc:3.41.2.2'
+}
+
+jar {
+    archiveBaseName = 'bal-library-tool'
+    archiveVersion = project.version
+
+    // Fat jar: bundle sqlite-jdbc inside
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
