@@ -16,7 +16,6 @@ repositories {
 
 ext {
     balDist = '/Library/Ballerina/distributions/ballerina-2201.13.2/bre/lib'
-    lsBuild = '/Users/viththagan/WSO2/ballerina-language-server'
 }
 
 dependencies {
@@ -31,14 +30,9 @@ dependencies {
             'jackson-databind-*.jar',
             'jackson-annotations-*.jar',
             'jackson-core-*.jar',
+            'flow-model-central-client-*.jar',
+            'ballerina-rt-*.jar',
     ])
-
-    // LS build JARs — compileOnly here, copied into tool/libs/ by install-local.sh
-    compileOnly fileTree(dir: "${lsBuild}/langserver-core/build/libs", include: ['langserver-core-*.jar'])
-    compileOnly fileTree(dir: "${lsBuild}/langserver-commons/build/libs", include: ['langserver-commons-*.jar'])
-    compileOnly fileTree(dir: "${lsBuild}/flow-model-generator/modules/flow-model-generator-core/build/libs", include: ['flow-model-generator-core-*.jar'])
-    compileOnly fileTree(dir: "${lsBuild}/model-generator-commons/build/libs", include: ['model-generator-commons-*.jar'])
-    compileOnly fileTree(dir: "${lsBuild}/misc/diagram-util/build/libs", include: ['diagram-util-*.jar'])
 
     // Must be bundled — not in Ballerina's bre/lib
     implementation 'org.xerial:sqlite-jdbc:3.41.2.2'

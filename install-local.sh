@@ -48,13 +48,8 @@ copy_jar() {
     fi
 }
 
-copy_jar "$LS_BUILD/flow-model-generator/modules/flow-model-generator-core/build/libs/flow-model-generator-core-1.7.0.alpha4.jar"
 # flow-model-generator-ls-extension bundles search-index.sqlite — loaded from here at runtime
 copy_jar "$LS_BUILD/flow-model-generator/modules/flow-model-generator-ls-extension/build/libs/flow-model-generator-ls-extension-1.7.0.alpha4.jar"
-copy_jar "$LS_BUILD/model-generator-commons/build/libs/model-generator-commons-1.7.0.alpha4.jar"
-copy_jar "$LS_BUILD/langserver-core/build/libs/langserver-core-1.7.0.alpha4.jar"
-copy_jar "$LS_BUILD/langserver-commons/build/libs/langserver-commons-1.7.0.alpha4.jar"
-copy_jar "$LS_BUILD/misc/diagram-util/build/libs/diagram-util-1.7.0.alpha4.jar"
 
 echo "==> Writing package.json..."
 cp "$SCRIPT_DIR/Ballerina.toml" "$TOOL_BALA/"

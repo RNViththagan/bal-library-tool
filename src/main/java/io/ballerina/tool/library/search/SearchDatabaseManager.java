@@ -18,8 +18,8 @@
 
 package io.ballerina.tool.library.search;
 
-import io.ballerina.modelgenerator.commons.SearchResult;
-import io.ballerina.modelgenerator.commons.UnifiedSearchResult;
+import io.ballerina.tool.library.commons.SearchResult;
+import io.ballerina.tool.library.commons.UnifiedSearchResult;
 
 import java.io.IOException;
 import java.net.URL;

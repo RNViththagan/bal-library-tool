@@ -36,11 +36,11 @@ import io.ballerina.tool.library.model.TypeDef;
 import io.ballerina.tool.library.model.TypeDefMember;
 import io.ballerina.tool.library.model.TypeLink;
 import io.ballerina.tool.library.model.UnionValue;
-import io.ballerina.modelgenerator.commons.FieldData;
-import io.ballerina.modelgenerator.commons.FunctionData;
-import io.ballerina.modelgenerator.commons.ParameterData;
-import io.ballerina.modelgenerator.commons.ReturnTypeData;
-import io.ballerina.modelgenerator.commons.TypeDefData;
+import io.ballerina.tool.library.commons.FieldData;
+import io.ballerina.tool.library.commons.FunctionData;
+import io.ballerina.tool.library.commons.ParameterData;
+import io.ballerina.tool.library.commons.ReturnTypeData;
+import io.ballerina.tool.library.commons.TypeDefData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ import java.util.Optional;
 
 import static io.ballerina.tool.library.symbol.TypeSymbolExtractor.extractRecordName;
 import static io.ballerina.tool.library.symbol.TypeSymbolExtractor.extractTypeLinksFromSymbol;
-import static io.ballerina.modelgenerator.commons.FunctionDataBuilder.REST_RESOURCE_PATH;
+import static io.ballerina.tool.library.commons.FunctionDataBuilder.REST_RESOURCE_PATH;
 
 /**
  * Utility class for converting data model objects to POJO representations.

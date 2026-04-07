@@ -34,10 +34,10 @@ import io.ballerina.tool.library.model.Client;
 import io.ballerina.tool.library.model.LibraryFunction;
 import io.ballerina.tool.library.model.Type;
 import io.ballerina.tool.library.model.TypeDef;
-import io.ballerina.modelgenerator.commons.FunctionData;
-import io.ballerina.modelgenerator.commons.FunctionDataBuilder;
-import io.ballerina.modelgenerator.commons.ModuleInfo;
-import io.ballerina.modelgenerator.commons.TypeDefData;
+import io.ballerina.tool.library.commons.FunctionData;
+import io.ballerina.tool.library.commons.FunctionDataBuilder;
+import io.ballerina.tool.library.commons.ModuleInfo;
+import io.ballerina.tool.library.commons.TypeDefData;
 
 import java.util.ArrayList;
 import java.util.List;

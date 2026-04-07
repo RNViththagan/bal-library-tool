@@ -31,16 +31,16 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.values.ConstantValue;
-import io.ballerina.modelgenerator.commons.FieldData;
-import io.ballerina.modelgenerator.commons.FunctionDataBuilder;
-import io.ballerina.modelgenerator.commons.TypeDefData;
+import io.ballerina.tool.library.commons.FieldData;
+import io.ballerina.tool.library.commons.FunctionDataBuilder;
+import io.ballerina.tool.library.commons.TypeDefData;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.modelgenerator.commons.CommonUtils.getRawType;
+import static io.ballerina.tool.library.commons.CommonUtils.getRawType;
 
 /**
  * Builder class for constructing TypeDefData instances from various symbol types.
