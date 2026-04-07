@@ -124,15 +124,15 @@ public class LibrarySearchEngine {
         return Optional.empty();
     }
 
+    // Maximum number of libraries returned by keyword search.
+    private static final int MAX_SEARCH_RESULTS = 9;
+
     /**
-     * Searches libraries by keywords across packages, types, connectors, and functions using BM25 ranking.
-     * Searches in PackageFTS (package_name, description, keywords),
-     * TypeFTS (description), ConnectorFTS (description), and FunctionFTS (description).
-     * Returns a map with package name (org/package_name) as key and description as value,
-     * ordered by relevance score (best matches first).
+     * Searches libraries by keywords across packages, types, connectors, and functions using
+     * weighted BM25 ranking with keyword priority and multi-source relevance aggregation.
      *
-     * @param keywords Array of search keywords
-     * @return map of matching package names to descriptions, ordered by BM25 relevance score
+     * @param keywords Array of search keywords ordered by priority (highest priority first)
+     * @return map of matching package names to descriptions, ordered by weighted relevance score
      * @throws SQLException if database query fails
      */
     public static Map<String, String> searchLibrariesByKeywords(String[] keywords) throws SQLException {
@@ -142,76 +142,133 @@ public class LibrarySearchEngine {
             return packageToDescriptionMap;
         }
 
-        // Format queries for different FTS table column structures
-        String packageQuery = formatForPackageFTS(keywords);
-        String typeConnectorFunctionQuery = formatForNameDescriptionFTS(keywords);
+        // Format full-keyword queries (all keywords OR'd together)
+        String allPackageQuery = formatForPackageFTS(keywords);
+        String allNameDescQuery = formatForNameDescriptionFTS(keywords);
 
-        // If no valid keywords after filtering, return empty
-        if (packageQuery.isEmpty() && typeConnectorFunctionQuery.isEmpty()) {
+        // Return empty if no valid keywords survive sanitization
+        if (allPackageQuery.isEmpty() && allNameDescQuery.isEmpty()) {
             return packageToDescriptionMap;
         }
 
-        // Union query to search across all FTS tables and aggregate results by package
+        // Format primary-keyword queries (first keyword only) for priority boosting.
+        // Primary keyword matches appear in both primary and full sub-queries, so they
+        // appear twice in the UNION and gain a multi-match bonus over secondary-only matches.
+        String primaryPackageQuery = formatForPackageFTS(new String[]{keywords[0]});
+        String primaryNameDescQuery = formatForNameDescriptionFTS(new String[]{keywords[0]});
+
+        // Fall back to all-keywords query if the primary keyword sanitizes to empty
+        if (primaryPackageQuery.isEmpty()) {
+            primaryPackageQuery = allPackageQuery;
+        }
+        if (primaryNameDescQuery.isEmpty()) {
+            primaryNameDescQuery = allNameDescQuery;
+        }
+
+        // Weighted union query with keyword priority and multi-source aggregation.
         String sql = """
-                SELECT p.org, p.package_name, p.description, MIN(score) as best_score
-                FROM (
-                    -- Search in PackageFTS (package_name, description, keywords)
-                    SELECT p.id, bm25(PackageFTS) as score
-                    FROM PackageFTS fts
-                    INNER JOIN Package p ON fts.rowid = p.id
-                    WHERE PackageFTS MATCH ?
-                      AND p.org IS NOT NULL
-                      AND p.package_name IS NOT NULL
+            SELECT p.org, p.package_name, p.description,
+                   MIN(weighted_score) - (COUNT(*) - 1) * 0.2 AS combined_score
+            FROM (
+                -- Primary keyword: PackageFTS
+                -- Weights: package_name(10.0), description(2.0), keywords(5.0)
+                SELECT p.id, bm25(PackageFTS, 10.0, 2.0, 5.0) AS weighted_score
+                FROM PackageFTS fts
+                INNER JOIN Package p ON fts.rowid = p.id
+                WHERE PackageFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
 
-                    UNION ALL
+                UNION ALL
 
-                    -- Search in TypeFTS (name, description)
-                    SELECT p.id, bm25(TypeFTS) as score
-                    FROM TypeFTS fts
-                    INNER JOIN Type t ON fts.rowid = t.id
-                    INNER JOIN Package p ON t.package_id = p.id
-                    WHERE TypeFTS MATCH ?
-                      AND p.org IS NOT NULL
-                      AND p.package_name IS NOT NULL
+                -- All keywords: PackageFTS (covers secondary keywords)
+                SELECT p.id, bm25(PackageFTS, 10.0, 2.0, 5.0) AS weighted_score
+                FROM PackageFTS fts
+                INNER JOIN Package p ON fts.rowid = p.id
+                WHERE PackageFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
 
-                    UNION ALL
+                UNION ALL
 
-                    -- Search in ConnectorFTS (name, description)
-                    SELECT p.id, bm25(ConnectorFTS) as score
-                    FROM ConnectorFTS fts
-                    INNER JOIN Connector c ON fts.rowid = c.id
-                    INNER JOIN Package p ON c.package_id = p.id
-                    WHERE ConnectorFTS MATCH ?
-                      AND p.org IS NOT NULL
-                      AND p.package_name IS NOT NULL
+                -- Primary keyword: TypeFTS (name, description, package_name; source boost ×0.9)
+                SELECT p.id, bm25(TypeFTS, 10.0, 2.0, 5.0) * 0.9 AS weighted_score
+                FROM TypeFTS fts
+                INNER JOIN Type t ON fts.rowid = t.id
+                INNER JOIN Package p ON t.package_id = p.id
+                WHERE TypeFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
 
-                    UNION ALL
+                UNION ALL
 
-                    -- Search in FunctionFTS (name, description)
-                    SELECT p.id, bm25(FunctionFTS) as score
-                    FROM FunctionFTS fts
-                    INNER JOIN Function f ON fts.rowid = f.id
-                    INNER JOIN Package p ON f.package_id = p.id
-                    WHERE FunctionFTS MATCH ?
-                      AND p.org IS NOT NULL
-                      AND p.package_name IS NOT NULL
-                ) AS combined
-                INNER JOIN Package p ON combined.id = p.id
-                GROUP BY p.org, p.package_name, p.description
-                ORDER BY best_score
-                LIMIT 9;
-                """;
+                -- All keywords: TypeFTS
+                SELECT p.id, bm25(TypeFTS, 10.0, 2.0, 5.0) * 0.9 AS weighted_score
+                FROM TypeFTS fts
+                INNER JOIN Type t ON fts.rowid = t.id
+                INNER JOIN Package p ON t.package_id = p.id
+                WHERE TypeFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
+
+                UNION ALL
+
+                -- Primary keyword: ConnectorFTS (primary library entry points; source boost ×0.8)
+                -- Weights: name(10.0), description(2.0), package_name(5.0)
+                SELECT p.id, bm25(ConnectorFTS, 10.0, 2.0, 5.0) * 0.8 AS weighted_score
+                FROM ConnectorFTS fts
+                INNER JOIN Connector c ON fts.rowid = c.id
+                INNER JOIN Package p ON c.package_id = p.id
+                WHERE ConnectorFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
+
+                UNION ALL
+
+                -- All keywords: ConnectorFTS
+                SELECT p.id, bm25(ConnectorFTS, 10.0, 2.0, 5.0) * 0.8 AS weighted_score
+                FROM ConnectorFTS fts
+                INNER JOIN Connector c ON fts.rowid = c.id
+                INNER JOIN Package p ON c.package_id = p.id
+                WHERE ConnectorFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
+
+                UNION ALL
+
+                -- Primary keyword: FunctionFTS (baseline source priority)
+                -- Weights: name(10.0), description(2.0), package_name(5.0)
+                SELECT p.id, bm25(FunctionFTS, 10.0, 2.0, 5.0) AS weighted_score
+                FROM FunctionFTS fts
+                INNER JOIN Function f ON fts.rowid = f.id
+                INNER JOIN Package p ON f.package_id = p.id
+                WHERE FunctionFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
+
+                UNION ALL
+
+                -- All keywords: FunctionFTS
+                SELECT p.id, bm25(FunctionFTS, 10.0, 2.0, 5.0) AS weighted_score
+                FROM FunctionFTS fts
+                INNER JOIN Function f ON fts.rowid = f.id
+                INNER JOIN Package p ON f.package_id = p.id
+                WHERE FunctionFTS MATCH ?
+                  AND p.org IS NOT NULL AND p.package_name IS NOT NULL
+            ) AS combined
+            INNER JOIN Package p ON combined.id = p.id
+            GROUP BY p.org, p.package_name, p.description
+            ORDER BY combined_score
+            LIMIT ?;
+            """;
 
         String dbPath = getDatabasePath();
         try (Connection conn = DriverManager.getConnection(dbPath);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            // Set the FTS queries - PackageFTS searches package_name, description, keywords
-            // TypeFTS, ConnectorFTS, FunctionFTS search name and description
-            stmt.setString(1, packageQuery);
-            stmt.setString(2, typeConnectorFunctionQuery);
-            stmt.setString(3, typeConnectorFunctionQuery);
-            stmt.setString(4, typeConnectorFunctionQuery);
+            // 8 FTS queries: primary and all-keywords for each of the 4 FTS tables
+            stmt.setString(1, primaryPackageQuery);
+            stmt.setString(2, allPackageQuery);
+            stmt.setString(3, primaryNameDescQuery);
+            stmt.setString(4, allNameDescQuery);
+            stmt.setString(5, primaryNameDescQuery);
+            stmt.setString(6, allNameDescQuery);
+            stmt.setString(7, primaryNameDescQuery);
+            stmt.setString(8, allNameDescQuery);
+            stmt.setInt(9, MAX_SEARCH_RESULTS);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 populatePackageMap(packageToDescriptionMap, rs);
@@ -284,8 +341,9 @@ public class LibrarySearchEngine {
     }
 
     /**
-     * Formats keywords for TypeFTS, ConnectorFTS, and FunctionFTS which search in name and description columns.
-     * Uses column filters to explicitly search across name and description.
+     * Formats keywords for TypeFTS, ConnectorFTS, and FunctionFTS which search in
+     * name, description, and package_name columns.
+     * Uses column filters to explicitly search across all three columns.
      *
      * @param keywords array of pre-filtered keywords
      * @return FTS5-formatted query string with column filters
@@ -301,8 +359,8 @@ public class LibrarySearchEngine {
             if (sanitized.isEmpty()) {
                 continue;
             }
-            // Search in name and description columns
-            tokens.add("{name description}: " + sanitized);
+            // Search in name, description, and package_name columns
+            tokens.add("{name description package_name}: " + sanitized);
         }
 
         // Combine tokens with OR operator
