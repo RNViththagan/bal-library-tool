@@ -12,3 +12,6 @@ src/main/resources/search-index.sqlite
 .idea/
 *.iml
 .vscode/
+
+# Internal docs — not for public repo
+internal-docs/
