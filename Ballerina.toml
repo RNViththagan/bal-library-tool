@@ -1,4 +1,4 @@
 [package]
 org = "viththagan"
-name = "library-tool"
+name = "library_tool"
 version = "0.1.0"
