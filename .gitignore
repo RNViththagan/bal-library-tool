@@ -5,6 +5,9 @@ build/
 # Large binary resources — not committed, copied from LS repo by install-local.sh
 src/main/resources/search-index.sqlite
 
+# Local environment config
+.env
+
 # macOS
 .DS_Store
 
