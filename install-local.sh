@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # Builds the JAR and installs it as a local bal tool named "library".
-# Also copies the flow-model-generator-ls-extension JAR (which bundles
-# search-index.sqlite) into tool/libs/.
 # Usage: ./install-local.sh
 
 set -euo pipefail
@@ -11,21 +9,7 @@ ORG="viththagan"
 NAME="library-tool"
 VERSION="0.1.0"
 
-# Load local config (copy .env.example → .env and set your paths)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -f "$SCRIPT_DIR/.env" ]; then
-    # shellcheck source=/dev/null
-    source "$SCRIPT_DIR/.env"
-fi
-
-# LS_EXTENSION_JAR — path to flow-model-generator-ls-extension-*.jar
-# This JAR bundles search-index.sqlite, which is loaded at runtime.
-# Override in .env, or set LS_BUILD to your local LS checkout.
-if [ -z "${LS_EXTENSION_JAR:-}" ]; then
-    LS_BUILD="${LS_BUILD:-/Users/viththagan/WSO2/ballerina-language-server}"
-    LS_EXTENSION_JAR="$LS_BUILD/flow-model-generator/modules/flow-model-generator-ls-extension/build/libs/flow-model-generator-ls-extension-1.7.0.alpha4.jar"
-fi
-
 BALA_HOME="$HOME/.ballerina/repositories/local/bala"
 TOOL_BALA="$BALA_HOME/$ORG/$NAME/$VERSION/any"
 TOOL_LIBS="$TOOL_BALA/tool/libs"
@@ -47,22 +31,6 @@ fi
 echo "==> Installing tool JAR into $TOOL_LIBS ..."
 mkdir -p "$TOOL_LIBS"
 cp "$JAR" "$TOOL_LIBS/"
-
-echo "==> Copying LS build JARs..."
-copy_jar() {
-    local jar_path="$1"
-    local jar_file
-    jar_file=$(basename "$jar_path")
-    if [ -f "$jar_path" ]; then
-        cp "$jar_path" "$TOOL_LIBS/"
-        echo "    + $jar_file"
-    else
-        echo "    WARNING: not found: $jar_path"
-    fi
-}
-
-# flow-model-generator-ls-extension bundles search-index.sqlite — loaded from here at runtime
-copy_jar "$LS_EXTENSION_JAR"
 
 echo "==> Writing package.json..."
 cp "$SCRIPT_DIR/Ballerina.toml" "$TOOL_BALA/"
