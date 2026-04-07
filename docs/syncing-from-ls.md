@@ -15,7 +15,16 @@ These files are **data only** — no code changes are required when syncing them
 | `src/main/resources/copilot/instructions/**` | `flow-model-generator/modules/flow-model-generator-ls-extension/src/main/resources/copilot/instructions/` | Prompt instructions for a library are written or updated |
 | `src/main/resources/inbuilt-triggers/**` | `misc/ls-extensions/modules/trigger-service/src/main/resources/inbuilt-triggers/` | Trigger listener definitions (parameters, types) are updated, or new trigger libraries are added |
 
-## How to sync
+## Automated sync
+
+A GitHub Actions workflow (`.github/workflows/sync-sqlite.yml`) runs daily and automatically:
+1. Checks the latest LS release tag against `.ls-version`
+2. Downloads `ballerina-language-server-*.jar` from the release
+3. Extracts both SQLite files and commits them
+
+You can also trigger it manually from the Actions tab, optionally specifying a specific LS tag.
+
+## Manual sync
 
 Copy the changed files from your local LS checkout into this repo, then rebuild:
 
