@@ -1,1 +1,1 @@
-io.ballerina.tool.library.LibraryTool
+io.ballerina.tool.library.cli.LibraryTool
