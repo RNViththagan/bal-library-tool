@@ -51,11 +51,19 @@ Execute the commands below to build from the source.
 
         ./gradlew clean build -x check
 
-3. To install locally as a bal tool:
+3. To run the tests:
+
+        ./gradlew :native:test
+
+4. To install locally as a bal tool (quick dev workflow):
 
         ./install-local.sh
 
-4. To publish to maven local:
+5. To build and install via Gradle (full bala packaging):
+
+        ./gradlew clean build -PpublishToLocalCentral=true
+
+6. To publish to maven local:
 
         ./gradlew clean build publishToMavenLocal
 
