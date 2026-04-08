@@ -46,6 +46,10 @@ public class LibraryTool implements BLauncherCmd {
         this.outStream = System.out;
     }
 
+    public LibraryTool(PrintStream printStream) {
+        this.outStream = printStream;
+    }
+
     @Override
     public String getName() {
         return "library";

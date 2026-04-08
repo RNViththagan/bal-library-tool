@@ -1,0 +1,5 @@
+[tool]
+id = "library"
+
+[[dependency]]
+path = "../native/build/libs/bal-library-tool-0.1.0.jar"

@@ -1,0 +1,2 @@
+error: at least one library name is required
+Usage: bal library get <lib-names...>

@@ -18,6 +18,8 @@
 
 plugins {
     id "com.github.johnrengelman.shadow" version "${shadowJarPluginVersion}"
+    id "net.researchgate.release" version "${releasePluginVersion}"
+    id 'maven-publish'
 }
 
 allprojects {
@@ -29,6 +31,7 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+
         maven {
             url = 'https://maven.pkg.github.com/ballerina-platform/*'
             credentials {
@@ -37,4 +40,31 @@ allprojects {
             }
         }
     }
+
+    ext {
+        snapshotVersion = '-SNAPSHOT'
+        timestampedVersionRegex = '.*-\\d{8}-\\d{6}-\\w.*\$'
+    }
+}
+
+subprojects {
+    configurations {
+        ballerinaStdLibs
+        jbalTools
+    }
+
+    dependencies {
+        jbalTools("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
+            transitive = false
+        }
+    }
+}
+
+tasks.register('build') {
+    dependsOn(":native:build")
+    dependsOn(":ballerina:build")
+}
+
+task buildNativeOnly {
+    dependsOn(":native:build")
 }

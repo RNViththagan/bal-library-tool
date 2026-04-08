@@ -1,0 +1,10 @@
+Search and retrieve Ballerina library information.
+
+Usage:
+  bal library search <keywords...>   Search libraries by keywords
+  bal library get <lib-names...>     Get full library details
+
+Examples:
+  bal library search http client
+  bal library get ballerina/http
+  bal library get ballerina/http ballerinax/github

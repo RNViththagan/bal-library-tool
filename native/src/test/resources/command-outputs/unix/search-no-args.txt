@@ -1,0 +1,2 @@
+error: at least one keyword is required
+Usage: bal library search <keywords...>

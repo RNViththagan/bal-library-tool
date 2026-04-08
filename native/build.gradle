@@ -43,11 +43,26 @@ dependencies {
 
     implementation "io.ballerina:ballerina-language-server:${lsVersion}"
     lsRuntime "io.ballerina:ballerina-language-server:${lsVersion}"
+
+    testImplementation "org.testng:testng:${testngVersion}"
+}
+
+def distributionBinPath = new File(project.projectDir.absolutePath).parent + "/target/ballerina-runtime"
+if (!new File(distributionBinPath).exists()) {
+    // Fall back to the locally installed Ballerina distribution
+    def localDist = "/Library/Ballerina/distributions/ballerina-${ballerinaLangVersion}"
+    if (new File(localDist).exists()) {
+        distributionBinPath = localDist
+    }
+}
+
+test {
+    useTestNG()
+    systemProperty "ballerina.home", distributionBinPath
+    systemProperty "project.version", "${project.version}"
 }
 
 jar {
-    archiveBaseName = 'bal-library-tool'
-    archiveVersion = project.version
     from {
         configurations.lsRuntime.collect {
             zipTree(it).matching {
