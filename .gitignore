@@ -1,14 +1,7 @@
-# Build output
 .gradle/
 build/
-
-# macOS
 .DS_Store
-
-# IntelliJ / VS Code
 .idea/
 *.iml
 .vscode/
-
-# Internal docs — not for public repo
 internal-docs/

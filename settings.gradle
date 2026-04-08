@@ -1,1 +1,3 @@
 rootProject.name = 'bal-library-tool'
+include ':native'
+project(':native').projectDir = file('native')

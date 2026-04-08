@@ -1,0 +1,69 @@
+/*
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow'
+}
+
+description = 'Ballerina library tool native code'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+configurations {
+    lsRuntime
+}
+
+dependencies {
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
+    implementation "info.picocli:picocli:${picocliVersion}"
+    implementation "com.google.code.gson:gson:${gsonVersion}"
+
+    implementation "io.ballerina:ballerina-language-server:${lsVersion}"
+    lsRuntime "io.ballerina:ballerina-language-server:${lsVersion}"
+}
+
+jar {
+    archiveBaseName = 'bal-library-tool'
+    archiveVersion = project.version
+    from {
+        configurations.lsRuntime.collect {
+            zipTree(it).matching {
+                include 'io/ballerina/flowmodelgenerator/core/copilot/**'
+                include 'io/ballerina/flowmodelgenerator/core/InstructionLoader*'
+                include 'io/ballerina/modelgenerator/commons/**'
+                include 'org/sqlite/**'
+                include 'search-index.sqlite'
+                include 'central-index.sqlite'
+                include 'copilot/**'
+                include 'inbuilt-triggers/**'
+                include 'META-INF/maven/org.xerial/**'
+                include 'META-INF/native-image/**'
+                include 'META-INF/services/java.sql.Driver'
+            }
+        }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

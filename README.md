@@ -6,75 +6,65 @@ A Ballerina CLI tool for searching and retrieving library information from Balle
 
 ### Search libraries
 
-Search for libraries by keywords:
-
 ```bash
 bal library search <keywords...>
 ```
 
-**Examples:**
 ```bash
 bal library search http client
 bal library search kafka messaging
-bal library search fhir healthcare
 ```
 
 Returns a ranked list of matching libraries with descriptions, ordered by relevance.
 
 ### Get library details
 
-Retrieve full details of one or more libraries including functions, connectors, and types:
-
 ```bash
 bal library get <org/package> [<org/package>...]
 ```
 
-**Examples:**
 ```bash
 bal library get ballerina/http
 bal library get ballerina/http ballerinax/github
 ```
 
-Returns full function signatures, parameter details, and type definitions for the specified libraries.
+Returns full function signatures, parameter details, and type definitions.
 
 ## Installation
 
 ### Prerequisites
 
-- Ballerina installed ([ballerina.io](https://ballerina.io))
-- Java 21+
-- Gradle
+- [Ballerina](https://ballerina.io) 2201.13.2+
+- Java 17+
+- GitHub PAT with `read:packages` scope (for pulling the LS artifact)
 
 ### Install locally
 
 ```bash
+export packageUser=<github-username>
+export packagePAT=<github-pat>
 ./install-local.sh
 ```
 
-This builds the fat JAR and registers it as a `bal` tool under `viththagan/library_tool`.
-
 ### Uninstall
 
-Remove the entry from `~/.ballerina/.config/bal-tools.toml` and delete:
+```bash
+rm -rf ~/.ballerina/repositories/local/bala/ballerinax/tool_library/
 ```
-~/.ballerina/repositories/local/bala/viththagan/library-tool/
-```
+
+Remove the `[[tool]]` entry for `library` from `~/.ballerina/.config/bal-tools.toml`.
 
 ## How it works
 
-- **Search** — queries a bundled `search-index.sqlite` using FTS5 with weighted BM25 ranking across package names, descriptions, keywords, types, connectors, and functions
-- **Get** — resolves the package from Ballerina Central, compiles it, and extracts full API details (functions, connectors, types, parameters) via the semantic model; also uses a bundled `central-index.sqlite` as a pre-computed cache
+This tool is a thin CLI wrapper around the Ballerina Language Server's copilot library functionality.
+It depends on the published `io.ballerina:ballerina-language-server` fat JAR from GitHub Packages,
+which provides all the copilot classes, model-generator-commons, and bundled SQLite indexes.
 
-Both SQLite indexes are bundled directly in the JAR and kept in sync with the Ballerina Language Server releases via an automated GitHub Actions workflow.
+- **Search** queries a bundled `search-index.sqlite` using FTS5 with weighted BM25 ranking
+- **Get** resolves the package via the semantic model and extracts full API details
 
-## Syncing indexes
-
-The bundled SQLite indexes are automatically synced daily from the latest [ballerina-language-server](https://github.com/ballerina-platform/ballerina-language-server) release via `.github/workflows/sync-sqlite.yml`.
-
-To manually sync to a specific release, trigger the workflow from the Actions tab with the desired tag (e.g. `v1.7.0`).
-
-See [docs/syncing-from-ls.md](docs/syncing-from-ls.md) for details.
+To update the LS version, change `lsVersion` in `gradle.properties`.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0

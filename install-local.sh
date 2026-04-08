@@ -5,9 +5,9 @@
 set -euo pipefail
 
 TOOL_ID="library"
-ORG="viththagan"
-NAME="library-tool"
-VERSION="0.1.0"
+ORG="ballerinax"
+NAME="tool_library"
+VERSION="0.1.0-SNAPSHOT"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BALA_HOME="$HOME/.ballerina/repositories/local/bala"
@@ -20,9 +20,9 @@ rm -rf "$BALA_HOME/$ORG/$NAME"
 
 echo "==> Building JAR..."
 cd "$SCRIPT_DIR"
-./gradlew jar
+./gradlew :native:jar
 
-JAR="$SCRIPT_DIR/build/libs/bal-library-tool-$VERSION.jar"
+JAR="$SCRIPT_DIR/native/build/libs/bal-library-tool-$VERSION.jar"
 if [ ! -f "$JAR" ]; then
     echo "ERROR: JAR not found at $JAR"
     exit 1
