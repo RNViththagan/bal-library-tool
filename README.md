@@ -1,70 +1,78 @@
-# bal library tool
+# Ballerina Library Tool
 
-A Ballerina CLI tool for searching and retrieving library information from Ballerina Central.
+A Ballerina CLI tool for searching and retrieving library information. It enables AI copilots and
+developers to discover Ballerina packages and retrieve detailed API information including functions,
+connectors, types, and parameters.
 
-## Commands
+## Usage
 
 ### Search libraries
 
-```bash
-bal library search <keywords...>
-```
+Search for libraries by keywords. Returns a ranked list ordered by relevance.
 
 ```bash
 bal library search http client
 bal library search kafka messaging
+bal library search fhir healthcare
 ```
-
-Returns a ranked list of matching libraries with descriptions, ordered by relevance.
 
 ### Get library details
 
-```bash
-bal library get <org/package> [<org/package>...]
-```
+Retrieve full API details of one or more libraries including functions, connectors, and type definitions.
 
 ```bash
 bal library get ballerina/http
 bal library get ballerina/http ballerinax/github
 ```
 
-Returns full function signatures, parameter details, and type definitions.
+## Building from the Source
 
-## Installation
+### Setting Up the Prerequisites
 
-### Prerequisites
+1. OpenJDK 21 ([Adopt OpenJDK](https://adoptopenjdk.net/) or any other OpenJDK distribution)
 
-- [Ballerina](https://ballerina.io) 2201.13.2+
-- Java 17+
-- GitHub PAT with `read:packages` scope (for pulling the LS artifact)
+   >**Info:** You can also use [Oracle JDK](https://www.oracle.com/java/technologies/javase-downloads.html). Set the JAVA_HOME environment variable to the pathname of the directory into which you installed JDK.
 
-### Install locally
+2. Export GitHub Personal access token with read package permissions as follows,
+   ```bash
+   export packageUser=<Username>
+   export packagePAT=<Personal access token>
+   ```
 
-```bash
-export packageUser=<github-username>
-export packagePAT=<github-pat>
-./install-local.sh
-```
+### Building the Source
 
-### Uninstall
+Execute the commands below to build from the source.
 
-```bash
-rm -rf ~/.ballerina/repositories/local/bala/ballerinax/tool_library/
-```
+1. To build the library:
 
-Remove the `[[tool]]` entry for `library` from `~/.ballerina/.config/bal-tools.toml`.
+        ./gradlew clean build
 
-## How it works
+2. To build the module without the checks:
 
-This tool is a thin CLI wrapper around the Ballerina Language Server's copilot library functionality.
-It depends on the published `io.ballerina:ballerina-language-server` fat JAR from GitHub Packages,
-which provides all the copilot classes, model-generator-commons, and bundled SQLite indexes.
+        ./gradlew clean build -x check
 
-- **Search** queries a bundled `search-index.sqlite` using FTS5 with weighted BM25 ranking
-- **Get** resolves the package via the semantic model and extracts full API details
+3. To install locally as a bal tool:
 
-To update the LS version, change `lsVersion` in `gradle.properties`.
+        ./install-local.sh
 
-## License
+4. To publish to maven local:
 
-Apache License 2.0
+        ./gradlew clean build publishToMavenLocal
+
+## Contributing to Ballerina
+
+As an open-source project, Ballerina welcomes contributions from the community.
+
+You can also check for [open issues](https://github.com/ballerina-platform/bal-library-tool/issues) that
+interest you. We look forward to receiving your contributions.
+
+For more information, go to the [contribution guidelines](https://github.com/ballerina-platform/ballerina-lang/blob/master/CONTRIBUTING.md).
+
+## Code of Conduct
+
+All contributors are encouraged to read the [Ballerina Code of Conduct](https://ballerina.io/code-of-conduct).
+
+## Useful Links
+
+* Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+* Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
