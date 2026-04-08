@@ -4,4 +4,4 @@ build/
 .idea/
 *.iml
 .vscode/
-internal-docs/
+internal-docs/CONTEXT.md
