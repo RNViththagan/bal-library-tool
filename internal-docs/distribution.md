@@ -45,49 +45,28 @@ bal tool remove library
 
 ## What needs to be done
 
-### 1. Add tool declaration to `Ballerina.toml`
+The `ballerina/` subproject uses `io.ballerina.plugin` for bala packaging. All Ballerina.toml and
+BalTool.toml files are generated from templates at build time — no manual edits needed.
 
-```toml
-[package]
-org = "ballerinax"
-name = "tool_library"
-version = "0.1.0"
-distribution = "2201.13.2"
-authors = ["Ballerina"]
-keywords = ["library", "search", "copilot"]
-repository = "https://github.com/ballerina-platform/bal-library-tool"
-license = ["Apache-2.0"]
-
-[[tool]]
-id = "library"
-targetFile = "tool/libs/bal-library-tool-0.1.0.jar"
-```
-
-### 2. Build the fat JAR
+### 1. Build and pack the bala
 
 ```bash
 export packageUser=<github-username>
 export packagePAT=<github-pat>
-./gradlew :native:jar
+./gradlew clean build
 ```
 
-### 3. Copy JAR into the package directory
+This runs `updateTomlFiles` (generates `ballerina/Ballerina.toml` and `ballerina/BalTool.toml`)
+and `bal pack` inside the `ballerina/` subproject, producing the `.bala` artifact.
 
-```bash
-mkdir -p tool/libs
-cp native/build/libs/bal-library-tool-0.1.0-SNAPSHOT.jar tool/libs/
-```
-
-Add `tool/libs/` to `.gitignore`.
-
-### 4. Push to Ballerina Central
+### 2. Push to Ballerina Central
 
 ```bash
 bal login
-bal push
+cd ballerina && bal push
 ```
 
-### 5. User installation (after publish)
+### 3. User installation (after publish)
 
 ```bash
 bal tool pull library
@@ -97,22 +76,51 @@ bal library get ballerina/http
 
 ---
 
+## Local installation options
+
+### Option A — `install-local.sh` (quick, no jballerina-tools download)
+
+Builds the native JAR and installs directly into `~/.ballerina/repositories/local/bala`.
+Fastest option for iterating on local changes.
+
+```bash
+./install-local.sh
+```
+
+### Option B — Gradle full build with local Central
+
+Uses `io.ballerina.plugin` to produce the bala and install it via the local Central registry.
+Requires downloading jballerina-tools (~400 MB, cached after first run).
+
+```bash
+./gradlew clean build -PpublishToLocalCentral=true
+```
+
+---
+
 ## Verification
 
 ```bash
-# 1. Build
-./gradlew :native:jar
+export packageUser=<github-username>
+export packagePAT=<github-pat>
 
-# 2. Copy JAR
-mkdir -p tool/libs && cp native/build/libs/bal-library-tool-*.jar tool/libs/
+# 1. Run tests
+./gradlew :native:test
 
-# 3. Test local pack
-bal pack
+# 2. Build
+./gradlew clean build
 
-# 4. Push to Central
-bal push
+# 3. Install locally
+./install-local.sh
 
-# 5. On a fresh machine
+# 4. Smoke test
+bal library search http client
+bal library get ballerina/http
+
+# 5. Push to Central
+cd ballerina && bal push
+
+# 6. On a fresh machine
 bal tool pull library
 bal library search http client
 bal library get ballerina/http
@@ -127,6 +135,7 @@ bal library get ballerina/http
 - The `org.ballerinalang` dependencies (ballerina-lang, ballerina-cli, etc.) are NOT bundled —
   they're already on the Ballerina runtime classpath
 - When the LS ships a new release, bump `lsVersion` in `gradle.properties` and rebuild
-- The `[[tool]]` section in `Ballerina.toml` is the only addition needed before pushing
+- `ballerina/Ballerina.toml` and `ballerina/BalTool.toml` are generated — do not edit them directly;
+  edit the templates in `build-config/resources/package/` instead
 - The SPI entry at `META-INF/services/io.ballerina.cli.BLauncherCmd` wires `LibraryTool` as
   the `bal library` command handler

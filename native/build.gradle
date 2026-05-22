@@ -32,6 +32,65 @@ configurations {
     lsRuntime
 }
 
+// Resolve the ballerina-language-server dependency.
+// Priority: -PlsLocalJar / LS_LOCAL_JAR  >  -PlsVersion / LS_VERSION  >  fetch latest from GitHub.
+def lsLocalJar = project.findProperty('lsLocalJar') ?: System.getenv('LS_LOCAL_JAR')
+def lsVersion = project.findProperty('lsVersion') ?: System.getenv('LS_VERSION')
+
+if (!lsLocalJar && !lsVersion) {
+    if (project.gradle.startParameter.offline) {
+        throw new GradleException(
+            "lsVersion is not set and gradle is running in --offline mode. " +
+            "Pass -PlsVersion=<x.y.z> or -PlsLocalJar=<path/to.jar> explicitly."
+        )
+    }
+    def resolvedTag = null
+    // First try: `gh release list` (uses the user's gh auth — no rate-limit issues).
+    try {
+        def proc = ['gh', 'release', 'list',
+                    '--repo', 'ballerina-platform/ballerina-language-server',
+                    '--limit', '1',
+                    '--json', 'tagName',
+                    '--jq', '.[0].tagName'].execute()
+        proc.waitFor()
+        if (proc.exitValue() == 0) {
+            resolvedTag = proc.in.text.trim()
+        }
+    } catch (IOException ignore) {
+        // gh not installed — fall through to anonymous HTTP
+    }
+
+    // Fallback: anonymous GitHub REST API (rate-limited to 60/hr per IP).
+    if (!resolvedTag) {
+        try {
+            def url = new URL("https://api.github.com/repos/ballerina-platform/ballerina-language-server/releases?per_page=1")
+            def conn = url.openConnection()
+            conn.setRequestProperty("Accept", "application/vnd.github+json")
+            conn.setRequestProperty("User-Agent", "bal-library-tool-gradle")
+            def ghToken = System.getenv("GITHUB_TOKEN") ?: System.getenv("GH_TOKEN")
+            if (ghToken) {
+                conn.setRequestProperty("Authorization", "Bearer ${ghToken}")
+            }
+            def releases = new groovy.json.JsonSlurper().parse(conn.inputStream, "UTF-8")
+            if (releases && !releases.isEmpty()) {
+                resolvedTag = releases[0].tag_name
+            }
+        } catch (Exception e) {
+            throw new GradleException(
+                "Failed to fetch latest ballerina-language-server version: ${e.message}. " +
+                "Install `gh` and run `gh auth login`, set GITHUB_TOKEN, " +
+                "or pass -PlsVersion=<x.y.z> / -PlsLocalJar=<path/to.jar> explicitly.", e
+            )
+        }
+    }
+
+    if (!resolvedTag?.startsWith("v")) {
+        throw new GradleException("unexpected ballerina-language-server tag: ${resolvedTag}")
+    }
+    lsVersion = resolvedTag.substring(1)
+    logger.lifecycle("Resolved latest ballerina-language-server: ${lsVersion}")
+}
+
 dependencies {
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
@@ -41,8 +100,17 @@ dependencies {
     implementation "info.picocli:picocli:${picocliVersion}"
     implementation "com.google.code.gson:gson:${gsonVersion}"
 
-    implementation "io.ballerina:ballerina-language-server:${lsVersion}"
-    lsRuntime "io.ballerina:ballerina-language-server:${lsVersion}"
+    if (lsLocalJar) {
+        if (!file(lsLocalJar).exists()) {
+            throw new GradleException("lsLocalJar not found: ${lsLocalJar}")
+        }
+        logger.lifecycle("Using local ballerina-language-server jar: ${lsLocalJar}")
+        implementation files(lsLocalJar)
+        lsRuntime files(lsLocalJar)
+    } else {
+        implementation "io.ballerina:ballerina-language-server:${lsVersion}"
+        lsRuntime "io.ballerina:ballerina-language-server:${lsVersion}"
+    }
 
     testImplementation "org.testng:testng:${testngVersion}"
 }

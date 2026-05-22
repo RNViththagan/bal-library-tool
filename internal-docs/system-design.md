@@ -114,21 +114,40 @@ at build time via the `lsRuntime` Gradle configuration with include filters.
 ```
 bal-library-tool/
 ├── build.gradle              ← root: plugins + allprojects repos
-├── settings.gradle           ← includes ':native'
+├── settings.gradle           ← pluginManagement, includes ':native' and ':ballerina'
 ├── gradle.properties         ← ALL versions (lsVersion, ballerinaLangVersion, etc.)
-├── Ballerina.toml
-├── install-local.sh
+├── install-local.sh          ← quick local dev install (no jballerina-tools download)
 ├── README.md
+├── build-config/
+│   └── resources/package/
+│       ├── Ballerina.toml    ← template (replaces @toml.version@ at build time)
+│       └── BalTool.toml      ← template with tool id + native JAR path
+├── ballerina/
+│   ├── build.gradle          ← io.ballerina.plugin subproject for bala packaging
+│   ├── Ballerina.toml        ← generated from template at build time
+│   └── BalTool.toml          ← generated from template at build time
 └── native/
-    ├── build.gradle          ← Java subproject: deps + jar task
-    └── src/main/
-        ├── java/io/ballerina/library/
-        │   ├── cli/LibraryTool.java
-        │   └── service/
-        │       ├── LibraryGetService.java
-        │       └── LibrarySearchService.java
-        └── resources/META-INF/services/
-            └── io.ballerina.cli.BLauncherCmd
+    ├── build.gradle          ← Java subproject: deps + jar task + test config
+    └── src/
+        ├── main/
+        │   ├── java/io/ballerina/library/
+        │   │   ├── cli/LibraryTool.java
+        │   │   └── service/
+        │   │       ├── LibraryGetService.java
+        │   │       └── LibrarySearchService.java
+        │   └── resources/META-INF/services/
+        │       └── io.ballerina.cli.BLauncherCmd
+        └── test/
+            ├── java/io/ballerina/library/
+            │   ├── TestUtil.java
+            │   ├── LibraryToolTest.java
+            │   ├── LibrarySearchServiceTest.java
+            │   └── LibraryGetServiceTest.java
+            └── resources/command-outputs/unix/
+                ├── help.txt
+                ├── search-no-args.txt
+                ├── get-no-args.txt
+                └── unknown-subcommand.txt
 ```
 
 ---
@@ -176,12 +195,35 @@ To update to a new LS release: change `lsVersion`, rebuild, reinstall. No code c
 
 ---
 
+## Tests
+
+Tests live in `native/src/test/`. They use TestNG and cover:
+
+| Class | What it tests |
+|-------|---------------|
+| `LibraryToolTest` | CLI output: `--help`, unknown subcommand, missing args |
+| `LibrarySearchServiceTest` | `search("http")` returns results including `ballerina/http` |
+| `LibraryGetServiceTest` | `get("ballerina/http")` returns typeDefs and full details |
+
+`LibraryGetServiceTest` requires a Ballerina distribution for package resolution. The build
+automatically uses `target/ballerina-runtime` (populated by `./gradlew :ballerina:build`) or
+falls back to the locally installed distribution at `/Library/Ballerina/distributions/ballerina-<version>`.
+
+```bash
+./gradlew :native:test
+```
+
+---
+
 ## Build & install
 
 ```bash
 export packageUser=<github-username>
 export packagePAT=<github-pat-with-read:packages>
 
-./gradlew :native:jar       # → native/build/libs/bal-library-tool-<version>.jar (~21 MB)
-./install-local.sh           # builds + installs as bal tool
+# Quick local dev (no jballerina-tools download, ~seconds)
+./install-local.sh
+
+# Full bala packaging via io.ballerina.plugin (downloads jballerina-tools ~400MB on first run)
+./gradlew clean build -PpublishToLocalCentral=true
 ```
